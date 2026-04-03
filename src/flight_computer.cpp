@@ -33,7 +33,9 @@ class FlightComputerNode : public rclcpp::Node
                     double current_altitude = msg->pose.position.z;
 
                     // Detect apogee when altitude starts decreasing
-                    if((last_altitude > current_altitude) || (parachute_deployed == true))      // If the last altitude is greater than the current then the peak was reached.
+                    // If statement logic explained: if the parachute is deployed AND if the last altitude is greater than current altitude
+                    // AND if last altitude is greater than one (as a fail safe) then the if statement executes.
+                    if(!parachute_deployed && (last_altitude > current_altitude) && (last_altitude > 1.0))
                     {
                         RCLCPP_INFO(this->get_logger(), "APOGEE DETECTED at %.2f meters! Deploying parachute...", last_altitude);
 
@@ -47,8 +49,9 @@ class FlightComputerNode : public rclcpp::Node
                     last_altitude = current_altitude;
                 }
             );
-            parachute_publish_ = this->create_publisher<std_msgs::msg::Bool>("cmd_parachute", 10);      // Initializes a topic called cmd parachute in boolean with a buffer of 10
-            
+
+            //Initializes a topic called cmd parachute in boolean with a buffer of 10
+            parachute_publish_ = this->create_publisher<std_msgs::msg::Bool>("cmd_parachute", 10);
             last_altitude = 0.0;
             parachute_deployed = false;
         }
