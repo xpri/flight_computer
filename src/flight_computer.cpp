@@ -28,7 +28,24 @@ class FlightComputerNode : public rclcpp::Node
                 10,
                 
                 [this](const geometry_msgs::msg::PoseStamped::SharedPtr msg)           // Lambda function for readability
-                {}
+                {
+                    // Place all code from telementary_callback here.
+                    double current_altitude = msg->pose.position.z;
+
+                    // Detect apogee when altitude starts decreasing
+                    if((last_altitude > current_altitude) || (parachute_deployed == true))      // If the last altitude is greater than the current then the peak was reached.
+                    {
+                        RCLCPP_INFO(this->get_logger(), "APOGEE DETECTED at %.2f meters! Deploying parachute...", last_altitude);
+
+                        auto cmd = std_msgs::msg::Bool();
+                        cmd.data = true;
+                        parachute_publish_->publish(cmd);
+
+                        parachute_deployed = true;
+                    }
+
+                    last_altitude = current_altitude;
+                }
             );
             parachute_publish_ = this->create_publisher<std_msgs::msg::Bool>("cmd_parachute", 10);      // Initializes a topic called cmd parachute in boolean with a buffer of 10
             
@@ -37,26 +54,7 @@ class FlightComputerNode : public rclcpp::Node
         }
     
     private:
-        void telementary_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
-        {
-            double current_altitude = msg->pose.position.z;
 
-            // Detect apogee when altitude starts decreasing
-            if((last_altitude > current_altitude) || (parachute_deployed == true))      // If the last altitude is greater than the current then the peak was reached.
-            {
-                RCLCPP_INFO(this->get_logger(), "APOGEE DETECTED at %.2f meters! Deploying parachute...", last_altitude);
-
-                auto cmd = std_msgs::msg::Bool();
-                cmd.data = true;
-                parachute_publish_->publish(cmd);
-
-                parachute_deployed = true;
-            }
-
-            last_altitude = current_altitude;
-
-        }
-        // Must include SharedPtr in node decleration
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr subscription_;
         rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr parachute_publish_;
         
